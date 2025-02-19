@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  // Removed const keyword from constructor invocation to avoid const-with-nonconst errors.
+  // No const constructor to avoid const-with-nonconst errors
   MyApp({Key? key}) : super(key: key);
 
   @override
@@ -52,12 +51,14 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
   }
 
   void _computeInverse() {
+    // Read the user input into a 2D List<double>
     List<List<double>> matrix = matrixControllers.map((row) {
       return row.map((controller) {
         return double.tryParse(controller.text) ?? 0;
       }).toList();
     }).toList();
 
+    // Calculate determinant
     double determinant = _calculateDeterminant(matrix);
     if (determinant == 0) {
       setState(() {
@@ -68,6 +69,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       return;
     }
 
+    // Compute inverse
     List<List<double>>? inverse = _invertMatrix(matrix);
     if (inverse == null) {
       setState(() {
@@ -76,6 +78,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       return;
     }
 
+    // Format the inverse matrix
     String formattedMatrix = _formatMatrixWithFractions(inverse);
 
     setState(() {
@@ -85,11 +88,11 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       showSteps = true;
     });
 
-    // Scroll to the bottom after computation.
+    // Scroll to the bottom after computation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 500),
         curve: Curves.easeOut,
       );
     });
@@ -98,17 +101,18 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
   double _calculateDeterminant(List<List<double>> matrix) {
     if (matrixSize == 2) {
       double det = (matrix[0][0] * matrix[1][1]) - (matrix[0][1] * matrix[1][0]);
-      steps.add(r'\mathrm{Determinant = (' +
-          matrix[0][0].toString() +
-          r' \times ' +
-          matrix[1][1].toString() +
-          r') - (' +
-          matrix[0][1].toString() +
-          r' \times ' +
-          matrix[1][0].toString() +
-          r') = ' +
-          det.toString() +
-          r'}');
+      steps.add(
+        r'\text{Determinant = (' +
+            matrix[0][0].toString() +
+            r' \times ' +
+            matrix[1][1].toString() +
+            r') - (' +
+            matrix[0][1].toString() +
+            r' \times ' +
+            matrix[1][0].toString() +
+            r') = ' +
+            det.toString(),
+      );
       return det;
     }
     return 1; // Placeholder for larger matrices
@@ -119,7 +123,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     List<List<double>> augmented =
         List.generate(n, (i) => List.generate(2 * n, (j) => 0.0));
 
-    // Step 1: Augment the matrix with the identity matrix.
+    // Step 1: Augment the matrix with the identity matrix
     steps.add(r'\text{Step 1: Augment the matrix with the identity matrix:}');
     for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
@@ -129,38 +133,41 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     }
     steps.add(_formatAugmentedMatrix(augmented));
 
-    // Step 2: Apply Gaussian elimination.
+    // Step 2: Apply Gaussian elimination
     for (int i = 0; i < n; i++) {
       double pivot = augmented[i][i];
       if (pivot == 0) return null;
 
-      // Normalize pivot row.
+      // -- Normalize pivot row --
       for (int j = 0; j < 2 * n; j++) {
         augmented[i][j] /= pivot;
       }
-      steps.add(r'\text{Step ' +
-          (i + 2).toString() +
-          r': Normalize row ' +
-          (i + 1).toString() +
-          r' by dividing by pivot ' +
-          pivot.toString() +
-          r':}');
+      // ** Add a row operation line like: R1 -> 1/-2 R1 **
+      // i+1 is the row number in 1-based indexing
+      steps.add(
+        r'R_{' + (i + 1).toString() + r'} \rightarrow \frac{1}{' + pivot.toString() + '}R_{' + (i + 1).toString() + '}',
+      );
       steps.add(_formatAugmentedMatrix(augmented));
 
-      // Eliminate other rows.
+      // -- Eliminate other rows --
       for (int k = 0; k < n; k++) {
         if (k != i) {
           double factor = augmented[k][i];
           for (int j = 0; j < 2 * n; j++) {
             augmented[k][j] -= factor * augmented[i][j];
           }
-          steps.add(r'\text{Eliminate row ' +
-              (k + 1).toString() +
-              r' using row ' +
-              (i + 1).toString() +
-              r' (factor: ' +
-              factor.toString() +
-              r'):}');
+          // ** Show row elimination line like: R2 -> R2 - (factor)R1 **
+          steps.add(
+            r'R_{' +
+                (k + 1).toString() +
+                r'} \rightarrow R_{' +
+                (k + 1).toString() +
+                '} - (' +
+                factor.toString() +
+                r')R_{' +
+                (i + 1).toString() +
+                '}',
+          );
           steps.add(_formatAugmentedMatrix(augmented));
         }
       }
@@ -170,7 +177,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return List.generate(n, (i) => List.generate(n, (j) => augmented[i][j + n]));
   }
 
-  // Convert a decimal number to a fraction formatted in LaTeX.
+  /// Convert a decimal number to a fraction formatted in LaTeX.
   String _decimalToFraction(double number) {
     const double tolerance = 1.0E-6;
     if (number == number.roundToDouble()) {
@@ -205,12 +212,12 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     }
   }
 
-  // Helper method to compute the greatest common divisor.
+  /// Compute GCD
   int _gcd(int a, int b) {
     return b == 0 ? a.abs() : _gcd(b, a % b);
   }
 
-  // Format a matrix as a LaTeX pmatrix.
+  /// Format a matrix as a LaTeX pmatrix.
   String _formatMatrixWithFractions(List<List<double>> matrix) {
     String matrixString = r'\begin{pmatrix}';
     for (int i = 0; i < matrix.length; i++) {
@@ -227,7 +234,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return matrixString;
   }
 
-  // Format the augmented matrix (for steps) as a LaTeX array with a vertical separator.
+  /// Format the augmented matrix as a LaTeX array with a vertical separator.
   String _formatAugmentedMatrix(List<List<double>> matrix) {
     int n = matrixSize;
     String colAlignment = "";
@@ -253,7 +260,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return matrixString;
   }
 
-  // Format the input matrix A as LaTeX.
+  /// Format the input matrix A as LaTeX.
   String _formatInputMatrixAsLatex() {
     String matrixString = r'\begin{pmatrix}';
     for (int i = 0; i < matrixSize; i++) {
@@ -277,12 +284,12 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       appBar: AppBar(
         title: Math.tex(
           r'\text{Matrix Inverse Calculator (Step-by-Step)}',
-          textStyle: TextStyle(fontSize: 20),
+          textStyle: const TextStyle(fontSize: 20),
         ),
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -304,7 +311,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                 }
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Matrix input fields.
             Column(
               children: List.generate(matrixSize, (i) {
@@ -312,11 +319,11 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                   children: List.generate(matrixSize, (j) {
                     return Expanded(
                       child: Padding(
-                        padding: EdgeInsets.all(4.0),
+                        padding: const EdgeInsets.all(4.0),
                         child: TextField(
                           controller: matrixControllers[i][j],
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -326,29 +333,29 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                 );
               }),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Display input matrix A.
             Math.tex(
               r'A = ' + _formatInputMatrixAsLatex(),
-              textStyle: TextStyle(fontSize: 18),
+              textStyle: const TextStyle(fontSize: 18),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Compute Inverse Button.
             ElevatedButton(
               onPressed: _computeInverse,
               child: Math.tex(
                 r'\text{Compute Inverse}',
-                textStyle: TextStyle(fontSize: 16),
+                textStyle: const TextStyle(fontSize: 16),
               ),
             ),
-            SizedBox(height: 20),
-            // Error message.
+            const SizedBox(height: 20),
+            // Error message (if singular).
             if (errorMessage.isNotEmpty)
               Math.tex(
                 errorMessage,
-                textStyle: TextStyle(color: Colors.red, fontSize: 16),
+                textStyle: const TextStyle(color: Colors.red, fontSize: 16),
               ),
-            // Centered outputs: Determinant and A⁻¹ with space between.
+            // Determinant and Inverse outputs (centered).
             if (determinantText.isNotEmpty || inverseMatrix.isNotEmpty)
               Center(
                 child: Column(
@@ -357,17 +364,17 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                     if (determinantText.isNotEmpty)
                       Math.tex(
                         determinantText,
-                        textStyle: TextStyle(
+                        textStyle: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     if (determinantText.isNotEmpty && inverseMatrix.isNotEmpty)
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                     if (inverseMatrix.isNotEmpty)
                       Math.tex(
                         r'A^{-1} = ' + inverseMatrix,
-                        textStyle: TextStyle(
+                        textStyle: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -375,30 +382,33 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                   ],
                 ),
               ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             // Step-by-Step Calculation Display.
             if (showSteps)
               ExpansionTile(
                 title: Math.tex(
                   r'\text{Show Step-by-Step Calculation}',
-                  textStyle: TextStyle(
+                  textStyle: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 initiallyExpanded: true,
                 children: steps.map((step) {
-                  String formattedStep = step.startsWith(r'\')
+                  // If the step already begins with a backslash, assume it's LaTeX.
+                  // Otherwise, wrap it in \text{} to render as plain text.
+                  final formattedStep = step.startsWith(r'\')
                       ? step
                       : r'\text{' + step + r'}';
+
                   return Padding(
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 4.0,
                       horizontal: 8.0,
                     ),
                     child: Math.tex(
                       formattedStep,
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 16,
                         fontFamily: 'Courier',
                       ),
