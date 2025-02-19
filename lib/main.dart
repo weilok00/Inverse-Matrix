@@ -4,7 +4,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  // No const constructor to avoid const-with-nonconst errors
+  // Removed const constructor to avoid const-with-nonconst issues.
   MyApp({Key? key}) : super(key: key);
 
   @override
@@ -21,13 +21,13 @@ class MatrixInputPage extends StatefulWidget {
 }
 
 class _MatrixInputPageState extends State<MatrixInputPage> {
-  int matrixSize = 2; // Default matrix size
+  int matrixSize = 2; // Default is 2x2
   List<List<TextEditingController>> matrixControllers = [];
   String inverseMatrix = "";
   String determinantText = "";
   String errorMessage = "";
   bool showSteps = false;
-  List<String> steps = []; // Store step-by-step calculation steps
+  List<String> steps = [];
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -36,6 +36,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     _generateMatrix();
   }
 
+  /// Generate blank TextFields for the chosen matrix size.
   void _generateMatrix() {
     setState(() {
       matrixControllers = List.generate(
@@ -50,17 +51,18 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     });
   }
 
+  /// Read user input, compute determinant and inverse.
   void _computeInverse() {
-    // Read the user input into a 2D List<double>
+    // Read matrix input from controllers.
     List<List<double>> matrix = matrixControllers.map((row) {
       return row.map((controller) {
-        return double.tryParse(controller.text) ?? 0;
+        return double.tryParse(controller.text) ?? 0.0;
       }).toList();
     }).toList();
 
-    // Calculate determinant
-    double determinant = _calculateDeterminant(matrix);
-    if (determinant == 0) {
+    // Calculate determinant (only 2x2 in this example).
+    double det = _calculateDeterminant(matrix);
+    if (det == 0) {
       setState(() {
         inverseMatrix = "";
         determinantText = "";
@@ -69,26 +71,25 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       return;
     }
 
-    // Compute inverse
-    List<List<double>>? inverse = _invertMatrix(matrix);
-    if (inverse == null) {
+    // Attempt to invert the matrix.
+    List<List<double>>? inv = _invertMatrix(matrix);
+    if (inv == null) {
       setState(() {
         errorMessage = r'\text{Error computing the inverse.}';
       });
       return;
     }
 
-    // Format the inverse matrix
-    String formattedMatrix = _formatMatrixWithFractions(inverse);
-
+    // Format results.
+    String formattedMatrix = _formatMatrixWithFractions(inv);
     setState(() {
       errorMessage = "";
-      determinantText = r'\text{Determinant: }' + determinant.toStringAsFixed(3);
+      determinantText = r'\text{Determinant: }' + det.toStringAsFixed(3);
       inverseMatrix = formattedMatrix;
       showSteps = true;
     });
 
-    // Scroll to the bottom after computation
+    // Scroll down to reveal steps.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -98,65 +99,78 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     });
   }
 
+  /// Calculate determinant for a 2x2 matrix (simple example).
   double _calculateDeterminant(List<List<double>> matrix) {
     if (matrixSize == 2) {
-      double det = (matrix[0][0] * matrix[1][1]) - (matrix[0][1] * matrix[1][0]);
+      double a = matrix[0][0];
+      double b = matrix[0][1];
+      double c = matrix[1][0];
+      double d = matrix[1][1];
+      double det = a * d - b * c;
       steps.add(
-        r'\text{Determinant = (' +
-            matrix[0][0].toString() +
+        r'\text{Determinant} = (' +
+            a.toString() +
             r' \times ' +
-            matrix[1][1].toString() +
+            d.toString() +
             r') - (' +
-            matrix[0][1].toString() +
+            b.toString() +
             r' \times ' +
-            matrix[1][0].toString() +
+            c.toString() +
             r') = ' +
             det.toString(),
       );
       return det;
     }
-    return 1; // Placeholder for larger matrices
+    // Placeholder for bigger matrices.
+    return 1;
   }
 
+  /// Invert a 2x2 matrix using Gaussian elimination.
   List<List<double>>? _invertMatrix(List<List<double>> matrix) {
     int n = matrix.length;
+    // Create an augmented matrix of size n x 2n.
     List<List<double>> augmented =
-        List.generate(n, (i) => List.generate(2 * n, (j) => 0.0));
+        List.generate(n, (_) => List.generate(2 * n, (_) => 0.0));
 
-    // Step 1: Augment the matrix with the identity matrix
-    steps.add(r'\text{Step 1: Augment the matrix with the identity matrix:}');
+    // Step 1: Augment with identity.
+    steps.add(r'\text{Step 1: Augment the matrix with the identity matrix.}');
     for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
         augmented[i][j] = matrix[i][j];
       }
-      augmented[i][n + i] = 1;
+      augmented[i][n + i] = 1; // Identity on the right side
     }
     steps.add(_formatAugmentedMatrix(augmented));
 
-    // Step 2: Apply Gaussian elimination
+    // Step 2: Gaussian elimination.
     for (int i = 0; i < n; i++) {
       double pivot = augmented[i][i];
-      if (pivot == 0) return null;
+      if (pivot == 0) return null; // Non-invertible if pivot is zero.
 
-      // -- Normalize pivot row --
+      // Normalize pivot row.
       for (int j = 0; j < 2 * n; j++) {
         augmented[i][j] /= pivot;
       }
-      // ** Add a row operation line like: R1 -> 1/-2 R1 **
-      // i+1 is the row number in 1-based indexing
+      // Add a row-operation step, e.g. R1 -> 1/(pivot) R1
       steps.add(
-        r'R_{' + (i + 1).toString() + r'} \rightarrow \frac{1}{' + pivot.toString() + '}R_{' + (i + 1).toString() + '}',
+        r'R_{' +
+            (i + 1).toString() +
+            r'} \rightarrow \frac{1}{' +
+            pivot.toString() +
+            r'}\,R_{' +
+            (i + 1).toString() +
+            '}',
       );
       steps.add(_formatAugmentedMatrix(augmented));
 
-      // -- Eliminate other rows --
+      // Eliminate in other rows.
       for (int k = 0; k < n; k++) {
         if (k != i) {
           double factor = augmented[k][i];
           for (int j = 0; j < 2 * n; j++) {
             augmented[k][j] -= factor * augmented[i][j];
           }
-          // ** Show row elimination line like: R2 -> R2 - (factor)R1 **
+          // Add elimination step, e.g. R2 -> R2 - (factor) R1
           steps.add(
             r'R_{' +
                 (k + 1).toString() +
@@ -164,7 +178,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                 (k + 1).toString() +
                 '} - (' +
                 factor.toString() +
-                r')R_{' +
+                r')\,R_{' +
                 (i + 1).toString() +
                 '}',
           );
@@ -174,12 +188,14 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     }
 
     steps.add(r'\text{Final step: Extract the inverse matrix from the augmented matrix.}');
+    // Extract the inverse (right half of the augmented matrix).
     return List.generate(n, (i) => List.generate(n, (j) => augmented[i][j + n]));
   }
 
-  /// Convert a decimal number to a fraction formatted in LaTeX.
+  /// Convert decimal to fraction in LaTeX.
   String _decimalToFraction(double number) {
     const double tolerance = 1.0E-6;
+    // If integer, just return it.
     if (number == number.roundToDouble()) {
       return number.toInt().toString();
     }
@@ -198,8 +214,9 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
       fraction = numerator / denominator;
     }
     int gcd = _gcd(numerator, denominator);
-    numerator = numerator ~/ gcd;
-    denominator = denominator ~/ gcd;
+    numerator ~/= gcd;
+    denominator ~/= gcd;
+
     if (denominator == 1) {
       return (sign < 0 ? "-" : "") + numerator.toString();
     } else {
@@ -212,12 +229,10 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     }
   }
 
-  /// Compute GCD
-  int _gcd(int a, int b) {
-    return b == 0 ? a.abs() : _gcd(b, a % b);
-  }
+  /// Greatest Common Divisor
+  int _gcd(int a, int b) => b == 0 ? a.abs() : _gcd(b, a % b);
 
-  /// Format a matrix as a LaTeX pmatrix.
+  /// Format a matrix as LaTeX pmatrix.
   String _formatMatrixWithFractions(List<List<double>> matrix) {
     String matrixString = r'\begin{pmatrix}';
     for (int i = 0; i < matrix.length; i++) {
@@ -234,17 +249,21 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return matrixString;
   }
 
-  /// Format the augmented matrix as a LaTeX array with a vertical separator.
+  /// Format augmented matrix as LaTeX with a vertical bar separating original from identity.
   String _formatAugmentedMatrix(List<List<double>> matrix) {
     int n = matrixSize;
     String colAlignment = "";
+    // 'c' for each column in the original matrix.
     for (int i = 0; i < n; i++) {
       colAlignment += "c";
     }
+    // Add vertical bar
     colAlignment += "|";
+    // 'c' for each column in the identity/inverse portion.
     for (int i = 0; i < n; i++) {
       colAlignment += "c";
     }
+
     String matrixString = r'\left[\begin{array}{' + colAlignment + r'}';
     for (int i = 0; i < matrix.length; i++) {
       List<String> row = [];
@@ -260,7 +279,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return matrixString;
   }
 
-  /// Format the input matrix A as LaTeX.
+  /// Format the user-input matrix A as LaTeX pmatrix.
   String _formatInputMatrixAsLatex() {
     String matrixString = r'\begin{pmatrix}';
     for (int i = 0; i < matrixSize; i++) {
@@ -293,7 +312,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown to select matrix size.
+            // Dropdown to select matrix size
             DropdownButton<int>(
               value: matrixSize,
               items: [2, 3, 4].map((size) {
@@ -312,7 +331,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
               },
             ),
             const SizedBox(height: 20),
-            // Matrix input fields.
+            // Matrix input fields
             Column(
               children: List.generate(matrixSize, (i) {
                 return Row(
@@ -334,13 +353,13 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
               }),
             ),
             const SizedBox(height: 20),
-            // Display input matrix A.
+            // Display input matrix A
             Math.tex(
               r'A = ' + _formatInputMatrixAsLatex(),
               textStyle: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 20),
-            // Compute Inverse Button.
+            // Compute Inverse Button
             ElevatedButton(
               onPressed: _computeInverse,
               child: Math.tex(
@@ -349,13 +368,13 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // Error message (if singular).
+            // Error message if singular
             if (errorMessage.isNotEmpty)
               Math.tex(
                 errorMessage,
                 textStyle: const TextStyle(color: Colors.red, fontSize: 16),
               ),
-            // Determinant and Inverse outputs (centered).
+            // Determinant and Inverse outputs (centered with space between)
             if (determinantText.isNotEmpty || inverseMatrix.isNotEmpty)
               Center(
                 child: Column(
@@ -383,7 +402,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                 ),
               ),
             const SizedBox(height: 20),
-            // Step-by-Step Calculation Display.
+            // Step-by-Step Calculation Display
             if (showSteps)
               ExpansionTile(
                 title: Math.tex(
@@ -395,9 +414,9 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
                 ),
                 initiallyExpanded: true,
                 children: steps.map((step) {
-                  // If the step already begins with a backslash, assume it's LaTeX.
-                  // Otherwise, wrap it in \text{} to render as plain text.
-                  final formattedStep = step.startsWith(r'\')
+                  // If the step already begins with a backslash or 'R_{', treat it as LaTeX
+                  // Otherwise, wrap it in \text{} for plain text.
+                  final formattedStep = (step.startsWith(r'\') || step.startsWith('R_'))
                       ? step
                       : r'\text{' + step + r'}';
 
