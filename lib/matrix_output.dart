@@ -26,14 +26,14 @@ class MatrixOutput extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         //  Show User Input Matrix A
-        if (inputMatrix.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Math.tex(
-              r'A = ' + inputMatrix,
-              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+       if (inputMatrix.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Math.tex(
+            r'A = ' + inputMatrix, // ✅ Use the correctly formatted input matrix
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+        ),
         const SizedBox(height: 10),
 
         // ✅ Show Error Message if Matrix is Singular

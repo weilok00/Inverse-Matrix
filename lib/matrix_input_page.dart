@@ -82,22 +82,29 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     });
   }
 
-  String _formatInputMatrixAsLatex() {
-    String matrixString = r'\begin{bmatrix}';
-    for (int i = 0; i < matrixSize; i++) {
-      List<String> row = [];
-      for (int j = 0; j < matrixSize; j++) {
-        double value = double.tryParse(matrixControllers[i][j].text) ?? 0;
-        row.add(value.toString());
-      }
-      matrixString += row.join(' & ');
-      if (i < matrixSize - 1) {
-        matrixString += r'\\';
+String _formatInputMatrixAsLatex() {
+  String matrixString = r'\begin{bmatrix}';
+  for (int i = 0; i < matrixSize; i++) {
+    List<String> row = [];
+    for (int j = 0; j < matrixSize; j++) {
+      double value = double.tryParse(matrixControllers[i][j].text) ?? 0;
+
+      // ✅ Display whole numbers as integers, otherwise as fractions
+      if (value == value.roundToDouble()) {
+        row.add(value.toInt().toString());
+      } else {
+        row.add(decimalToFraction(value)); // ✅ Convert to fraction if it's not an integer
       }
     }
-    matrixString += r'\end{bmatrix}';
-    return matrixString;
+    matrixString += row.join(' & ');
+    if (i < matrixSize - 1) {
+      matrixString += r'\\';
+    }
   }
+  matrixString += r'\end{bmatrix}';
+  return matrixString;
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +129,7 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
               onComputeInverse: _computeInverse, // ✅ Compute inverse when button is pressed
             ),
             MatrixOutput(
-              inputMatrix: _formatInputMatrixAsLatex(), // ✅ Display user input matrix
+              inputMatrix: _formatInputMatrixAsLatex(), // ✅ Pass formatted matrix
               determinantText: determinantText,
               inverseMatrix: inverseMatrix,
               errorMessage: errorMessage,
