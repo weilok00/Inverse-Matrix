@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_math_fork: 
    git: https://github.com/Telosnex/flutter_math_fork_fork.git
+  http: ^1.3.0
    
 dev_dependencies:
   flutter_test:

@@ -114,7 +114,7 @@ List<List<double>>? invertMatrix(List<List<double>> matrix, List<String> steps) 
       List.generate(n, (_) => List.generate(2 * n, (_) => 0.0));
 
   // Step 1: Augment the matrix with the identity matrix.
-  steps.add(r'\text{Step 1: Augment the matrix with the identity matrix.}');
+  steps.add(r'\text{Apply ERO}');
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
       augmented[i][j] = matrix[i][j];
@@ -157,7 +157,6 @@ List<List<double>>? invertMatrix(List<List<double>> matrix, List<String> steps) 
     }
   }
 
-  steps.add(r'\text{Final step: Extract the inverse matrix from the augmented matrix.}');
   return List.generate(n, (i) => List.generate(n, (j) => augmented[i][j + n]));
 }
 
