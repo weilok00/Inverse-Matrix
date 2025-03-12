@@ -58,21 +58,19 @@ class MatrixOutput extends StatelessWidget {
               ),
             ],
             childrenContent: [
-              if (determinantText.isNotEmpty) ...[
+              if (determinantText.isNotEmpty) 
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Math.tex(
-                    r'\text{Determinant: }' + decimalToFraction(double.tryParse(determinantText) ?? 0), // ✅ Convert determinant
+                    r'\text{Determinant: } ' + determinantText,
                     textStyle: const TextStyle(fontSize: 18),
                   ),
                 ),
-                const Divider(),
-              ],
               if (inverseMatrix.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Math.tex(
-                    r'A^{-1} = ' + inverseMatrix, // ✅ Already formatted as a fraction
+                    r'A^{-1} = ' + inverseMatrix,
                     textStyle: const TextStyle(fontSize: 18),
                   ),
                 ),
@@ -92,8 +90,10 @@ class MatrixOutput extends StatelessWidget {
           childrenContent: steps.map((step) {
             return Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Math.tex(_replaceDecimalsWithFractions(step), // ✅ Ensure decimals are replaced
-                  textStyle: const TextStyle(fontSize: 16)),
+              child: Math.tex(
+                step,
+                textStyle: const TextStyle(fontSize: 16),
+              ),
             );
           }).toList(),
         ),

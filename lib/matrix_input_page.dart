@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'matrix_input.dart';
 import 'matrix_output.dart';
-import 'matrix_operations.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MatrixInputPage extends StatefulWidget {
   @override
@@ -24,86 +25,95 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     _generateMatrix();
   }
 
-  void _generateMatrix() {
-    setState(() {
-      matrixControllers = List.generate(
-        matrixSize,
-        (i) => List.generate(matrixSize, (j) => TextEditingController()),
-      );
-      inverseMatrix = "";
-      determinantText = "";
-      errorMessage = "";
-      showSteps = false;
-      steps.clear();
-    });
-  }
+    void _generateMatrix() {
+      setState(() {
+        matrixControllers = List.generate(
+          matrixSize,
+          (i) => List.generate(matrixSize, (j) => TextEditingController()),
+        );
+        inverseMatrix = "";
+        errorMessage = "";
+      });
+    }
 
-  void _computeInverse() {
-    List<List<double>> matrix = matrixControllers.map((row) {
+  void _computeInverse() async {
+    List<List<String>> matrix = matrixControllers.map((row) {
       return row.map((controller) {
-        return double.tryParse(controller.text) ?? 0.0;
+        return controller.text;
       }).toList();
     }).toList();
 
-    steps.clear(); // Reset steps for fresh calculations
-    double det = calculateDeterminant(matrix, steps);
-    if (det == 0) {
-      setState(() {
-        inverseMatrix = "";
-        determinantText = "";
-        errorMessage = r'\text{The matrix is singular and cannot be inverted.}';
-        showSteps = true;
-      });
-      return;
-    }
-
-    List<List<double>>? inv = invertMatrix(matrix, steps);
-    if (inv == null) {
-      setState(() {
-        errorMessage = r'\text{Error computing the inverse.}';
-        showSteps = true;
-      });
-      return;
-    }
-
-    setState(() {
-      errorMessage = "";
-      determinantText = det.toStringAsFixed(3);
-      inverseMatrix = formatMatrixWithFractions(inv);
-      showSteps = true;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOut,
+    try {
+      var response = await http.post(
+        Uri.parse('http://localhost:5000/matrix_inverse'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'matrix': matrix}),
       );
-    });
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+
+        String determinantLatex = data['determinant'];
+        List<List<String>> inverseMatrixData = (data['inverse'] as List<dynamic>)
+            .map((row) => (row as List<dynamic>).map((e) => e.toString()).toList())
+            .toList();
+
+        List<String> stepsData = List<String>.from(data['steps']);
+
+        String formattedInverse = _formatInverseMatrixAsLatex(inverseMatrixData);
+
+        setState(() {
+          determinantText = determinantLatex;
+          inverseMatrix = formattedInverse;
+          errorMessage = "";
+          steps = stepsData;
+          showSteps = true;
+        });
+      } else {
+        var data = jsonDecode(response.body);
+        setState(() {
+          errorMessage = data['error'];
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "An error occurred: $e";
+      });
+    }
   }
 
-String _formatInputMatrixAsLatex() {
-  String matrixString = r'\begin{bmatrix}';
-  for (int i = 0; i < matrixSize; i++) {
-    List<String> row = [];
-    for (int j = 0; j < matrixSize; j++) {
-      double value = double.tryParse(matrixControllers[i][j].text) ?? 0;
 
-      // ✅ Display whole numbers as integers, otherwise as fractions
-      if (value == value.roundToDouble()) {
-        row.add(value.toInt().toString());
-      } else {
-        row.add(decimalToFraction(value)); // ✅ Convert to fraction if it's not an integer
+  /// ✅ Format the Input Matrix for Display
+  String _formatInputMatrixAsLatex() {
+    String matrixString = r'\begin{bmatrix}';
+    for (int i = 0; i < matrixSize; i++) {
+      List<String> row = [];
+      for (int j = 0; j < matrixSize; j++) {
+        String value = matrixControllers[i][j].text;
+        row.add(value.isEmpty ? "0" : value);
+      }
+      matrixString += row.join(' & ');
+      if (i < matrixSize - 1) {
+        matrixString += r'\\';
       }
     }
-    matrixString += row.join(' & ');
-    if (i < matrixSize - 1) {
-      matrixString += r'\\';
-    }
+    matrixString += r'\end{bmatrix}';
+    return matrixString;
   }
-  matrixString += r'\end{bmatrix}';
-  return matrixString;
-}
+
+  String _formatInverseMatrixAsLatex(List<List<String>> matrix) {
+    String matrixString = r'\begin{bmatrix}';
+    for (var row in matrix) {
+      matrixString += row.join(' & ') + r'\\';
+    }
+
+    if (matrix.isNotEmpty) {
+      matrixString = matrixString.substring(0, matrixString.length - 2); // Remove last \\
+    }
+
+    matrixString += r'\end{bmatrix}';
+    return matrixString;
+  }
 
 
   @override
