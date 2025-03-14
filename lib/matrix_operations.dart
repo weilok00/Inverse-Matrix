@@ -112,7 +112,7 @@ List<List<double>>? invertMatrix(List<List<double>> matrix, List<String> steps) 
 
   List<List<double>> augmented =
       List.generate(n, (_) => List.generate(2 * n, (_) => 0.0));
-
+  
   // Step 1: Augment the matrix with the identity matrix.
   steps.add(r'\text{Apply ERO}');
   for (int i = 0; i < n; i++) {

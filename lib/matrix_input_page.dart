@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'matrix_input.dart';
 import 'matrix_output.dart';
 import 'package:http/http.dart' as http;
@@ -101,26 +102,30 @@ class _MatrixInputPageState extends State<MatrixInputPage> {
     return matrixString;
   }
 
-  String _formatInverseMatrixAsLatex(List<List<String>> matrix) {
-    String matrixString = r'\begin{bmatrix}';
-    for (var row in matrix) {
-      matrixString += row.join(' & ') + r'\\';
-    }
+String _formatInverseMatrixAsLatex(List<List<String>> matrix) {
+  int mid = matrix[0].length ~/ 2;
+  String alignment = 'c' * mid + '|' + 'c' * (matrix[0].length - mid);
 
-    if (matrix.isNotEmpty) {
-      matrixString = matrixString.substring(0, matrixString.length - 2); // Remove last \\
-    }
-
-    matrixString += r'\end{bmatrix}';
-    return matrixString;
+  String matrixString = r'\left[\begin{array}{' + alignment + r'}';
+  
+  for (var row in matrix) {
+    String left = row.sublist(0, mid).join(' & ');
+    String right = row.sublist(mid).join(' & ');
+    matrixString += '$left & $right \\\\';
   }
 
+  matrixString += r'\end{array}\right]';
+  return matrixString;
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Matrix Inverse Calculator"),
+        title: Math.tex(
+          r'\text{Matrix Inverse Calculator}', // ✅ LaTeX formatted title
+          textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
       ),
       body: SingleChildScrollView(
         controller: _scrollController,

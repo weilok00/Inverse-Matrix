@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'expansiontile.dart';
@@ -26,15 +25,18 @@ class MatrixOutput extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        //  Show User Input Matrix A
-       if (inputMatrix.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Math.tex(
-            r'A = ' + inputMatrix, // ✅ Use the correctly formatted input matrix
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        // Show User Input Matrix A with Horizontal Scroll
+        if (inputMatrix.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Math.tex(
+                r'A = ' + inputMatrix, // ✅ Use the correctly formatted input matrix
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
-        ),
         const SizedBox(height: 10),
 
         // ✅ Show Error Message if Matrix is Singular
@@ -58,52 +60,61 @@ class MatrixOutput extends StatelessWidget {
               ),
             ],
             childrenContent: [
-              if (determinantText.isNotEmpty) 
+              if (determinantText.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Math.tex(
-                    r'\text{Determinant: } ' + determinantText,
-                    textStyle: const TextStyle(fontSize: 18),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Math.tex(
+                      r'\text{Determinant: } ' + determinantText,
+                      textStyle: const TextStyle(fontSize: 18),
+                    ),
                   ),
                 ),
               if (inverseMatrix.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   child: Math.tex(
                     r'A^{-1} = ' + inverseMatrix,
                     textStyle: const TextStyle(fontSize: 18),
                   ),
                 ),
+              ),
             ],
           ),
         const SizedBox(height: 10),
 
-        // Step-by-Step Calculation Section with Fraction Formatting
+        // Step-by-Step Calculation Section with Horizontal Scroll
         if (showSteps)
-        MatrixExpansionTile(
-          titleContent: [
-            Math.tex(
-              r'\text{Step-by-Step Calculation}',
-              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-          childrenContent: steps.map((step) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Math.tex(
-                step,
-                textStyle: const TextStyle(fontSize: 16),
+          MatrixExpansionTile(
+            titleContent: [
+              Math.tex(
+                r'\text{Step-by-Step Calculation}',
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            );
-          }).toList(),
-        ),
+            ],
+            childrenContent: steps.map((step) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Math.tex(
+                    step,
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
       ],
     );
   }
 }
 
 /// ✅ Convert all decimal numbers in step-by-step calculations to fractions
-String _replaceDecimalsWithFractions(String step) {
+String replaceDecimalsWithFractions(String step) {
   return step.replaceAllMapped(RegExp(r'[-+]?\d*\.\d+'), (match) {
     double number = double.tryParse(match.group(0) ?? "0") ?? 0;
     return decimalToFraction(number); // ✅ Converts to **simplified fraction**
